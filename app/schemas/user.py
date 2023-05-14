@@ -9,6 +9,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+
 class UserUpdate(UserBase):
     nickname: str
 
@@ -28,3 +29,8 @@ class User(UserInDBBase):
 
 class UserInDB(UserInDBBase):
     hashed_password: str
+
+
+class UserCredentials(BaseModel):
+    login: str
+    password: str

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.crud.crud_user import crud_user
-from app.schemas.user import User, UserCreate
+from app.schemas.user import User, UserCreate, UserCredentials
 
 router = APIRouter()
 
@@ -23,3 +23,10 @@ def register_user(db: Annotated[Session, Depends(get_db)], user: UserCreate):
         return user
     except IntegrityError:
         raise HTTPException(detail='User with that login already exists', status_code=status.HTTP_409_CONFLICT)
+
+
+@router.post('/authenticate', response_model=bool, status_code=status.HTTP_200_OK)
+def auth_user(db: Annotated[Session, Depends(get_db)], creds: UserCredentials):
+    if crud_user.authenticate(db, login=creds.login, password=creds.password) is not None:
+        return True
+    return False
