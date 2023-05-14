@@ -5,7 +5,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.core.security import create_access_token
 from app.crud.crud_user import crud_user
+from app.schemas.token import Token
 from app.schemas.user import User, UserCreate, UserCredentials
 
 router = APIRouter()
@@ -25,8 +27,15 @@ def register_user(db: Annotated[Session, Depends(get_db)], user: UserCreate):
         raise HTTPException(detail='User with that login already exists', status_code=status.HTTP_409_CONFLICT)
 
 
-@router.post('/authenticate', response_model=bool, status_code=status.HTTP_200_OK)
+@router.post('/authenticate', response_model=Token, status_code=status.HTTP_200_OK)
 def auth_user(db: Annotated[Session, Depends(get_db)], creds: UserCredentials):
-    if crud_user.authenticate(db, login=creds.login, password=creds.password) is not None:
-        return True
-    return False
+    user = crud_user.authenticate(db, login=creds.login, password=creds.password)
+    if user is None:
+        raise HTTPException(detail='Incorrect credentials', status_code=status.HTTP_401_UNAUTHORIZED)
+    if user.is_active is False:
+        raise HTTPException(detail='User is inactive', status_code=status.HTTP_400_BAD_REQUEST)
+
+    return {
+        'access_token': create_access_token(user.login),
+        'token_type': 'Bearer'
+    }
