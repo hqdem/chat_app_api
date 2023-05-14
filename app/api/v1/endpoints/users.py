@@ -35,7 +35,5 @@ def auth_user(db: Annotated[Session, Depends(get_db)], creds: UserCredentials):
     if user.is_active is False:
         raise HTTPException(detail='User is inactive', status_code=status.HTTP_400_BAD_REQUEST)
 
-    return {
-        'access_token': create_access_token(user.login),
-        'token_type': 'Bearer'
-    }
+    token_data = Token(access_token=create_access_token(user.login), token_type='Bearer')
+    return token_data
