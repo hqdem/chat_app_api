@@ -3,14 +3,11 @@ from pydantic import BaseModel
 
 class UserBase(BaseModel):
     login: str
-    is_active: bool = True
-    is_admin = False
     nickname: str | None = None
 
 
 class UserCreate(UserBase):
     password: str
-
 
 class UserUpdate(UserBase):
     nickname: str
@@ -18,6 +15,8 @@ class UserUpdate(UserBase):
 
 class UserInDBBase(UserBase):
     id: int
+    is_active: bool = True
+    is_admin = False
 
     class Config:
         orm_mode = True
