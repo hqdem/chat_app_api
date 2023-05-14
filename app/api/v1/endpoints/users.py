@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_db, get_current_user
 from app.core.security import create_access_token
 from app.crud.crud_user import crud_user
 from app.schemas.token import Token
@@ -37,3 +37,8 @@ def auth_user(db: Annotated[Session, Depends(get_db)], creds: UserCredentials):
 
     token_data = Token(access_token=create_access_token(user.login), token_type='Bearer')
     return token_data
+
+
+@router.get('/me', response_model=User, status_code=status.HTTP_200_OK)
+def get_me(user: Annotated[User, Depends(get_current_user)]):
+    return user
