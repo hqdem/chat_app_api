@@ -8,3 +8,7 @@ class Token(BaseModel):
 
 class TokenPayload(BaseModel):
     sub: str
+
+
+class WebSocketTokenPayload(BaseModel):
+    token: str
