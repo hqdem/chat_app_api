@@ -4,8 +4,11 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketException, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_db, get_current_user
 from app.api.v1.utils.websockets import ConnectionManager
+from app.schemas.chat import Chat, ChatCreate
+from app.schemas.user import User
+from app.crud.crud_chat import crud_chat
 
 router = APIRouter()
 
@@ -62,3 +65,12 @@ async def start_chat(db: Annotated[Session, Depends(get_db)],
 @router.get('/', status_code=status.HTTP_200_OK)
 async def get_html():
     return HTMLResponse(html)
+
+
+@router.post('/', status_code=status.HTTP_201_CREATED, response_model=Chat)
+async def create_chat(db: Annotated[Session, Depends(get_db)], user: Annotated[User, Depends(get_current_user)],
+                      chat: ChatCreate):
+    chat_obj_in = {**chat.dict()}
+    chat_obj = crud_chat.create(db, obj_in=chat_obj_in)
+    crud_chat.add_owner(db, chat_obj, user)
+    return chat_obj
