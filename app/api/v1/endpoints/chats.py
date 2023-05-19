@@ -1,50 +1,15 @@
-from typing import Annotated
+from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketException, status
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, WebSocket, WebSocketException, status, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
 from app.api.v1.utils.websockets import ConnectionManager
-from app.schemas.chat import Chat, ChatCreate
+from app.schemas.chat import Chat, ChatCreate, ChatUpdate
 from app.schemas.user import User
 from app.crud.crud_chat import crud_chat
 
 router = APIRouter()
-
-html = """
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>Chat</title>
-    </head>
-    <body>
-        <h1>WebSocket Chat</h1>
-        <form action="" onsubmit="sendMessage(event)">
-            <input type="text" id="messageText" autocomplete="off"/>
-            <button>Send</button>
-        </form>
-        <ul id='messages'>
-        </ul>
-        <script>
-            var ws = new WebSocket("ws://127.0.0.1:8000/api/v1/chats/ws_chat");
-            ws.onmessage = function(event) {
-                var messages = document.getElementById('messages')
-                var message = document.createElement('li')
-                var content = document.createTextNode(event.data)
-                message.appendChild(content)
-                messages.appendChild(message)
-            };
-            function sendMessage(event) {
-                var input = document.getElementById("messageText")
-                ws.send(input.value)
-                input.value = ''
-                event.preventDefault()
-            }
-        </script>
-    </body>
-</html>
-"""
 
 
 @router.websocket('/ws_chat')
@@ -62,9 +27,40 @@ async def start_chat(db: Annotated[Session, Depends(get_db)],
         await manager.disconnect(websocket, code=ex.code, reason=ex.reason)
 
 
-@router.get('/', status_code=status.HTTP_200_OK)
-async def get_html():
-    return HTMLResponse(html)
+@router.get('/', status_code=status.HTTP_200_OK, response_model=List[Chat], dependencies=[Depends(get_current_user)])
+async def get_chats(db: Annotated[Session, Depends(get_db)], skip: int = 0, limit: int = 100):
+    return crud_chat.get_multi(db, skip=skip, limit=limit)
+
+
+@router.get('/{chat_id}', status_code=status.HTTP_200_OK, response_model=Chat, dependencies=[Depends(get_current_user)])
+async def get_chat(db: Annotated[Session, Depends(get_db)], chat_id: int):
+    chat = crud_chat.get_one(db, id=chat_id)
+    if chat is None:
+        raise HTTPException(detail='Chat not found', status_code=status.HTTP_404_NOT_FOUND)
+    return chat
+
+
+@router.delete('/{chat_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_chat(db: Annotated[Session, Depends(get_db)], chat_id: int,
+                      user: Annotated[User, Depends(get_current_user)]):
+    chat = crud_chat.get_one(db, id=chat_id)
+    if chat is None:
+        raise HTTPException(detail='Chat not found', status_code=status.HTTP_404_NOT_FOUND)
+    if chat.owner != user:
+        raise HTTPException(detail='Permission denied', status_code=status.HTTP_403_FORBIDDEN)
+    crud_chat.delete(db, id=chat_id)
+
+
+@router.put('/{chat_id}', status_code=status.HTTP_200_OK, response_model=Chat)
+async def update_chat(db: Annotated[Session, Depends(get_db)], chat_id: int,
+                      user: Annotated[User, Depends(get_current_user)], chat_update: ChatUpdate):
+    chat = crud_chat.get_one(db, id=chat_id)
+    if chat is None:
+        raise HTTPException(detail='Chat not found', status_code=status.HTTP_404_NOT_FOUND)
+    if chat.owner != user:
+        raise HTTPException(detail='Permission denied', status_code=status.HTTP_403_FORBIDDEN)
+    crud_chat.update(db, db_obj=chat, obj_in=chat_update)
+    return chat
 
 
 @router.post('/', status_code=status.HTTP_201_CREATED, response_model=Chat)
