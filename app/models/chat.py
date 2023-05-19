@@ -9,7 +9,7 @@ from app.db.base import Base
 class Chat(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
-    created_ad = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
     owner = Column(Integer, ForeignKey('user.id'))
 
     users = relationship('User', secondary='chatuser')
