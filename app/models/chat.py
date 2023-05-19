@@ -10,8 +10,9 @@ class Chat(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    owner = relationship('User', foreign_keys='user.id')
+    owner_id = Column(Integer, ForeignKey('user.id'))
 
+    owner = relationship('User', foreign_keys='Chat.owner_id')
     users = relationship('User', secondary='chatuser', back_populates='chats')
 
 
