@@ -12,4 +12,4 @@ class User(Base):
     nickname = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)
 
-    chats = relationship('Chat', secondary='chatuser')
+    chats = relationship('Chat', secondary='chatuser', back_populates='users')
