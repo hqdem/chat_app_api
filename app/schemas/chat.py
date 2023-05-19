@@ -22,6 +22,9 @@ class ChatInDBBase(ChatBase):
     created_at: datetime
     owner: User
 
+    class Config:
+        orm_mode = True
+
 
 class Chat(ChatInDBBase):
     pass
