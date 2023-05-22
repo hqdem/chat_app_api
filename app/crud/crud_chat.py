@@ -9,8 +9,12 @@ from app.models.chat import Chat
 
 
 class CRUDChat(CRUDBase[Chat, ChatCreate, ChatUpdate]):
-    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 0) -> List[Chat]:
+    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[Chat]:
         return db.query(self.model).options(joinedload(Chat.owner)).offset(skip).limit(limit).all()
+
+    def get_multi_by_owner(self, db: Session, *, owner: User, skip: int = 0, limit: int = 100):
+        return db.query(self.model).options(joinedload(Chat.owner)).filter(Chat.owner == owner).offset(skip).limit(
+            limit).all()
 
     def add_owner(self, db: Session, chat: Chat, owner: User) -> None:
         chat.owner = owner
