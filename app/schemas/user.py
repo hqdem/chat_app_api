@@ -3,10 +3,10 @@ from pydantic import BaseModel
 
 class UserBase(BaseModel):
     login: str
-    nickname: str | None = None
 
 
 class UserCreate(UserBase):
+    nickname: str | None = None
     password: str
 
 
