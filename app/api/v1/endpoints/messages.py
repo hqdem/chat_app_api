@@ -12,16 +12,18 @@ from app.schemas.messages import Message, MessageCreate
 router = APIRouter()
 
 
-@router.get('/', status_code=status.HTTP_200_OK, response_model=List[Message], dependencies=[Depends(get_current_user)])
-async def get_all_messages(db: Annotated[Session, Depends(get_db)],
-                     skip: int = 0, limit: int = 100):
-    # TODO: add permissions
+@router.get('/', status_code=status.HTTP_200_OK, response_model=List[Message])
+async def get_all_messages(db: Annotated[Session, Depends(get_db)], user: Annotated[User, Depends(get_current_user)],
+                           skip: int = 0, limit: int = 100):
+    if not user.is_admin:
+        raise HTTPException(detail='Permission denied', status_code=status.HTTP_403_FORBIDDEN)
     return crud_message.get_multi(db, skip=skip, limit=limit)
 
 
 @router.post('/{chat_id}', status_code=status.HTTP_201_CREATED, response_model=Message)
-async def create_message(db: Annotated[Session, Depends(get_db)], chat_id: int, user: Annotated[User, Depends(get_current_user)],
-                   message_data: MessageCreate):
+async def create_message(db: Annotated[Session, Depends(get_db)], chat_id: int,
+                         user: Annotated[User, Depends(get_current_user)],
+                         message_data: MessageCreate):
     # TODO: optimise query
     chat = crud_chat.get_one(db, id=chat_id)
     if chat is None:
