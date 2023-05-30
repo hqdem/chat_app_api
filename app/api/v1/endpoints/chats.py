@@ -35,7 +35,7 @@ async def get_chats(db: Annotated[Session, Depends(get_db)], skip: int = 0, limi
 @router.get('/my', status_code=status.HTTP_200_OK, response_model=List[Chat])
 async def get_chats_by_owner(db: Annotated[Session, Depends(get_db)], user: Annotated[User, Depends(get_current_user)],
                              skip: int = 0, limit: int = 100):
-    return crud_chat.get_multi_by_owner(db, owner=user, skip=skip, limit=limit)
+    return crud_chat.get_all_user_chats(db, user=user, skip=skip, limit=limit)
 
 
 @router.get('/{chat_id}', status_code=status.HTTP_200_OK, response_model=Chat, dependencies=[Depends(get_current_user)])
