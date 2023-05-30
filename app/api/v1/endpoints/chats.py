@@ -5,27 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
 from app.api.v1.utils.websockets import ConnectionManager
+from app.crud.crud_message import crud_message
 from app.schemas.chat import Chat, ChatCreate, ChatUpdate
 from app.schemas.messages import Message
 from app.schemas.user import User, UserBase
 from app.crud.crud_chat import crud_chat
 
 router = APIRouter()
-
-
-@router.websocket('/ws_chat')
-async def start_chat(db: Annotated[Session, Depends(get_db)],
-                     manager: Annotated[ConnectionManager, Depends(ConnectionManager)], websocket: WebSocket):
-    await manager.connect(websocket)
-    creds_data = await websocket.receive_text()
-
-    try:
-        await manager.authenticate_user(db, creds_data, websocket)
-        while True:
-            data = await websocket.receive_text()
-            await manager.send_personal_message(f"Message text was: {data}", websocket)
-    except WebSocketException as ex:
-        await manager.disconnect(websocket, code=ex.code, reason=ex.reason)
 
 
 @router.get('/', status_code=status.HTTP_200_OK, response_model=List[Chat], dependencies=[Depends(get_current_user)])
@@ -45,6 +31,30 @@ async def get_chat(db: Annotated[Session, Depends(get_db)], chat_id: int):
     if chat is None:
         raise HTTPException(detail='Chat not found', status_code=status.HTTP_404_NOT_FOUND)
     return chat
+
+
+@router.websocket('/{chat_id}/ws_chat')
+async def start_chat(db: Annotated[Session, Depends(get_db)], chat_id: int,
+                     manager: Annotated[ConnectionManager, Depends(ConnectionManager)], websocket: WebSocket):
+    chat = crud_chat.get_one(db, id=chat_id)
+    if chat is None:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Chat not found")
+
+    await manager.connect(websocket)
+    creds_data = await websocket.receive_text()
+
+    try:
+        user = await manager.authenticate_user(db, creds_data, websocket)
+        if user != chat.owner and user not in chat.users:
+            raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Permission denied")
+        while True:
+            data = await websocket.receive_text()
+            # TODO: add scheme for that type of object
+            obj_in = {'data': data, 'chat_id': chat.id, 'sender_id': user.id}
+            crud_message.create(db, obj_in=obj_in)
+            await manager.broadcast_message(f"Message text was: {data}")
+    except WebSocketException as ex:
+        await manager.disconnect(websocket, code=ex.code, reason=ex.reason)
 
 
 @router.get('/{chat_id}/history', status_code=status.HTTP_200_OK, response_model=List[Message])
