@@ -14,6 +14,7 @@ class Chat(Base):
 
     owner = relationship('User', foreign_keys='Chat.owner_id')
     users = relationship('User', secondary='chatuser', back_populates='chats')
+    messages = relationship('Messages', back_populates='chat')
 
 
 class ChatUser(Base):

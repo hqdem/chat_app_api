@@ -13,3 +13,4 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
 
     chats = relationship('Chat', secondary='chatuser', back_populates='users')
+    messages = relationship('Message', back_populates='sender')
