@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.crud.base import CRUDBase
 from app.crud.crud_user import crud_user
+from app.models.message import Message
 from app.models.user import User
 from app.schemas.chat import ChatUpdate, ChatCreate
 from app.models.chat import Chat
@@ -41,6 +42,10 @@ class CRUDChat(CRUDBase[Chat, ChatCreate, ChatUpdate]):
         db.add(chat)
         db.commit()
         db.refresh(chat)
+
+    def get_messages_history(self, chat: Chat) -> List[Message]:
+        # TODO: optimise queries
+        return chat.messages
 
 
 crud_chat = CRUDChat(Chat)

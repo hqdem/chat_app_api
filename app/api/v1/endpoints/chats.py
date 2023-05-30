@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
 from app.api.v1.utils.websockets import ConnectionManager
 from app.schemas.chat import Chat, ChatCreate, ChatUpdate
+from app.schemas.messages import Message
 from app.schemas.user import User, UserBase
 from app.crud.crud_chat import crud_chat
 
@@ -46,6 +47,17 @@ async def get_chat(db: Annotated[Session, Depends(get_db)], chat_id: int):
     return chat
 
 
+@router.get('/{chat_id}/history', status_code=status.HTTP_200_OK, response_model=List[Message])
+async def get_chat_history(db: Annotated[Session, Depends(get_db)], chat_id: int,
+                           user: Annotated[User, Depends(get_current_user)]):
+    chat = crud_chat.get_one(db, id=chat_id)
+    if chat is None:
+        raise HTTPException(detail='Chat not found', status_code=status.HTTP_404_NOT_FOUND)
+    if user != chat.owner and user not in chat.users:
+        raise HTTPException(detail='Permission denied', status_code=status.HTTP_403_FORBIDDEN)
+    return crud_chat.get_messages_history(chat)
+
+
 @router.get('/{chat_id}/get_users', status_code=status.HTTP_200_OK, response_model=List[User])
 async def get_chat_users(db: Annotated[Session, Depends(get_db)], chat_id: int,
                          user: Annotated[User, Depends(get_current_user)], skip: int = 0, limit: int = 100):
@@ -58,7 +70,8 @@ async def get_chat_users(db: Annotated[Session, Depends(get_db)], chat_id: int,
 
 
 @router.post('/{chat_id}/add_users', status_code=status.HTTP_204_NO_CONTENT)
-async def add_chat_users(db: Annotated[Session, Depends(get_db)], chat_id: int, user: Annotated[User, Depends(get_current_user)],
+async def add_chat_users(db: Annotated[Session, Depends(get_db)], chat_id: int,
+                         user: Annotated[User, Depends(get_current_user)],
                          add_users: List[UserBase]):
     chat = crud_chat.get_one(db, id=chat_id)
     if chat is None:
