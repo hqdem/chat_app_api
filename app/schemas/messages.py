@@ -9,14 +9,20 @@ class MessageBase(BaseModel):
 
 
 class MessageCreate(MessageBase):
-    chat_id: int
-    sender_id: int
+    pass
+
+
+class MessageUpdate(MessageBase):
+    pass
 
 
 class MessageInDBBase(MessageBase):
     id: int
     chat: Chat
     sender: User
+
+    class Config:
+        orm_mode = True
 
 
 class Message(MessageInDBBase):
