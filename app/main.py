@@ -9,4 +9,4 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 
 @app.get('/')
 def root():
-    return 'All working now'
+    return {'version': '0.0.1'}
