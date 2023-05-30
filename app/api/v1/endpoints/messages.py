@@ -25,6 +25,6 @@ async def create_message(db: Annotated[Session, Depends(get_db)], chat_id: int, 
     # TODO: optimise query
     chat = crud_chat.get_one(db, id=chat_id)
     if chat is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Chat with that id not found')
+        raise HTTPException(detail='Chat with that id not found', status_code=status.HTTP_404_NOT_FOUND)
     obj_in = dict(**message_data.dict(), chat_id=chat.id, sender_id=user.id)
     return crud_message.create(db, obj_in=obj_in)
