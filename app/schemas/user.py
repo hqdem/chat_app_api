@@ -17,6 +17,7 @@ class UserUpdate(UserBase):
 class UserInDBBase(UserBase):
     id: int
     is_active: bool = True
+    nickname: str
     is_admin = False
 
     class Config:
